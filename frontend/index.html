@@ -1,0 +1,598 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Trader de Elite - Simulador de Apostas</title>
+    <style>
+        :root { --bg-dark: #121212; --panel-bg: #1e1e1e; --pitch-bg: #2e8b57; --text-light: #e0e0e0; --accent: #10b981; --accent-hover: #059669; --danger: #ef4444; --border-color: #333;}
+        body { font-family: 'Segoe UI', sans-serif; background-color: var(--bg-dark); color: var(--text-light); margin: 0; padding: 0; height: 100vh; display: flex; flex-direction: column; overflow: hidden; }
+
+        .topbar { background-color: #000; padding: 15px 30px; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid var(--border-color); }
+        .topbar h1 { margin: 0; font-size: 1.5em; display: flex; align-items: center; gap: 10px;}
+        .wallet { font-size: 1.5em; font-weight: bold; color: #fbbf24; background: #222; padding: 5px 15px; border-radius: 20px;}
+
+        .view { display: none; padding: 20px; flex: 1; overflow-y: auto;}
+        .view.active { display: flex; flex-direction: column; }
+
+        .hub-container { max-width: 1100px; margin: 0 auto; width: 100%; }
+        .league-selector { background: var(--panel-bg); padding: 20px; border-radius: 8px; margin-bottom: 20px; text-align: center; display:flex; justify-content:center; align-items:center; gap:15px;}
+        .league-selector select { padding: 10px; font-size: 1em; background: #333; color: #fff; border: 1px solid #444; border-radius: 5px; cursor: pointer;}
+        .league-selector button { padding: 10px 20px; font-size: 1em; background: var(--accent); color: #fff; border: none; border-radius: 5px; cursor: pointer;}
+
+        /* Tournament UI */
+        .tournament-header { display: flex; justify-content: space-between; align-items: center; background: #111; padding: 15px 20px; border-radius: 8px; margin-bottom: 20px; border-left: 5px solid var(--accent);}
+        .tournament-header h2 { margin: 0; color: #fbbf24; }
+        .outrights-panel { background: var(--panel-bg); padding: 20px; border-radius: 8px; margin-bottom: 20px;}
+        .outrights-panel h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px;}
+        .outrights-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px;}
+        
+        .bracket-stage-title { text-align: center; color: var(--accent); margin: 30px 0 15px 0; font-size: 1.5em; border-bottom: 2px solid #333; padding-bottom: 5px;}
+        .matches-grid { display: grid; grid-template-columns: 1fr; gap: 20px; }
+        
+        .match-card { background: var(--panel-bg); border: 1px solid var(--border-color); border-radius: 8px; display: flex; flex-direction: column; overflow: hidden; position: relative;}
+        .match-card.played { opacity: 0.7; pointer-events: none;}
+        .match-header { display: flex; justify-content: space-between; align-items: center; font-size: 1.2em; font-weight: bold; background: #181818; padding: 15px 20px; }
+        .match-teams { display: flex; align-items: center; }
+        .match-teams img { width: 30px; margin: 0 10px;}
+        .action-buttons { display: flex; gap: 10px; }
+        .action-buttons button { padding: 8px 15px; border-radius: 5px; cursor: pointer; font-weight: bold; border:none; color:white; }
+        .btn-watch { background: var(--accent); }
+        .btn-fast { background: #fbbf24; color: black !important; }
+        .match-result-overlay { position: absolute; top:0; left:0; width:100%; height:100%; background:rgba(0,0,0,0.8); display:flex; flex-direction:column; align-items:center; justify-content:center; font-size: 2em; font-weight:bold; color:var(--accent); z-index: 10; display:none;}
+        
+        .markets-container { display: flex; gap: 20px; padding: 15px 20px; border-top: 1px solid #333; background: #1a1a1a;}
+        .market-group { flex: 1; text-align: center;}
+        .market-title { font-size: 0.85em; color: #888; margin-bottom: 5px;}
+        .odds-row { display: flex; gap: 5px; justify-content: center;}
+        .odd-btn { flex: 1; background: #2a2a2a; border: 1px solid #444; color: #fff; padding: 8px; border-radius: 4px; cursor: pointer; transition: 0.2s; font-size: 0.9em; position:relative;}
+        .odd-btn:hover { background: #3a3a3a; border-color: var(--accent);}
+        .odd-btn span { display: block; font-size: 0.8em; color: #aaa; margin-bottom: 2px;}
+
+        .local-bets-area { padding: 10px 20px; background: #111; border-top: 1px dashed #333; font-size: 0.9em;}
+        .local-bet-chip { display: inline-block; background: rgba(16,185,129,0.2); border: 1px solid var(--accent); color: var(--accent); padding: 4px 10px; border-radius: 15px; margin: 0 5px 5px 0;}
+
+        .modal { display: none; position: fixed; top:0; left:0; width:100%; height:100%; background: rgba(0,0,0,0.8); align-items: center; justify-content: center; z-index: 1000;}
+        .modal.active { display: flex; }
+        .modal-content { background: var(--panel-bg); padding: 30px; border-radius: 12px; width: 400px; border: 1px solid var(--border-color);}
+        .modal-content input { width: 100%; padding: 10px; margin: 10px 0; box-sizing: border-box; background: #222; border: 1px solid #444; color: white;}
+        .modal-buttons { display: flex; justify-content: space-between; margin-top: 20px;}
+        .modal-buttons button { padding: 10px 20px; border-radius: 5px; cursor: pointer; border: none; font-weight: bold;}
+        .btn-cancel { background: #444; color: white; }
+        .btn-confirm { background: var(--accent); color: white; }
+
+        .main-layout { display: flex; flex: 1; overflow: hidden; }
+        .views-area { flex: 3; display: flex; flex-direction: column; overflow-y: auto; position: relative; }
+        .fixed-bets-sidebar { flex: 1; background: #1a1a1a; border-left: 2px solid #333; overflow-y: auto; padding: 20px; box-sizing: border-box; }
+        .fixed-bets-sidebar h3 { margin-top: 0; border-bottom: 1px solid #333; padding-bottom: 10px; color: #fbbf24; }
+        .bet-list-item { background: #222; padding: 10px; border-radius: 5px; margin-bottom: 10px; font-size: 0.9em; border-left: 3px solid var(--accent);}
+        .bet-list-item.lost { border-left-color: var(--danger); opacity: 0.7;}
+        .bet-list-item.won { border-left-color: var(--accent); background: rgba(16,185,129,0.1);}
+
+        /* Live Match UI */
+        .live-layout { display: flex; flex: 1; height: calc(100vh - 100px); margin: 20px; gap: 20px;}
+        .pitch-area { flex: 3; background: var(--panel-bg); border-radius: 8px; position: relative; overflow: hidden; display: flex; align-items: center; justify-content: center; border: 1px solid #444;}
+        #pitchCanvas { width: 100%; height: 100%; object-fit: contain; background: var(--pitch-bg); }
+        .tv-scoreboard { position: absolute; top: 15px; left: 15px; background: rgba(0,0,0,0.8); border: 2px solid #555; border-radius: 8px; padding: 10px 15px; color: white; display: flex; flex-direction: column; gap: 5px; font-family: monospace; font-size: 1.1em; z-index: 10;}
+        .tv-teams { font-weight: bold; font-size: 1.3em; display: flex; gap: 10px; align-items: center; border-bottom: 1px solid #444; padding-bottom: 5px;}
+        .tv-stats { font-size: 0.9em; color: #ccc; display: flex; gap: 15px;}
+        .sidebar { flex: 1; background: #1c1c1c; border: 1px solid #333; border-radius: 8px; display: flex; flex-direction: column;}
+        .sidebar h3 { margin: 0; padding: 15px; background: #111; border-bottom: 1px solid #333; }
+        .feed { flex: 1; overflow-y: auto; padding: 10px; }
+        .feed-item { padding: 12px; border-bottom: 1px solid #2a2a2a; font-size: 0.95em; animation: fadeIn 0.5s; }
+        .coord-overlay { position: absolute; top: 20px; right: 20px; color: white; font-family: monospace; font-size: 1em; opacity: 0; pointer-events: none; transition: 0.3s; background: rgba(0,0,0,0.6); padding: 15px; border-radius: 5px; border-left: 4px solid var(--accent); z-index: 10;}
+        .coord-overlay.show { opacity: 1; }
+        
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(-5px); } to { opacity: 1; transform: translateY(0); } }
+    </style>
+</head>
+<body>
+    <div class="topbar">
+        <h1>⚽ Trader de Elite - Simulador</h1>
+        <div style="display:flex; gap: 15px; align-items:center;">
+            <div id="loan-display" style="color: #ef4444; font-weight:bold; font-size:1.1em; display:none;">Dívida: 🪙 0.00</div>
+            <button class="btn-fast" id="btn-loan" onclick="manageLoan()" style="padding: 5px 15px; font-size: 0.9em; cursor:pointer;">🏦 Empréstimo</button>
+            <div class="wallet" id="wallet-display">🪙 1000.00</div>
+        </div>
+    </div>
+
+    <div class="main-layout">
+        <div class="views-area">
+            <div id="view-hub" class="view active">
+        <div class="hub-container">
+            <div class="league-selector">
+                <h2>Gerar Jogos:</h2>
+                <select id="league-select">
+                    <option value="">-- Selecione --</option>
+                </select>
+                <button onclick="handleGenerate()">Gerar Confrontos</button>
+            </div>
+            
+            <div id="tournament-view" style="display:none;">
+                <div class="tournament-header">
+                    <h2 id="tourney-stage">Fase de Torneio</h2>
+                    <button class="btn-fast" id="sim-all-btn" onclick="simulateRemainingStage()">⚡ Simular Todos Restantes</button>
+                </div>
+                
+                <div class="outrights-panel" id="outrights-panel">
+                    <h3>🏆 Mercado de Campeão (Outrights)</h3>
+                    <div class="outrights-grid" id="outrights-grid"></div>
+                </div>
+                
+                <h3 class="bracket-stage-title" id="bracket-title">Partidas</h3>
+                <div id="matches-list" class="matches-grid"></div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TELA 2: LIVE MATCH -->
+    <div id="view-live" class="view">
+        <div style="display:flex; justify-content: space-between; margin-bottom: 10px;">
+            <button class="btn-cancel" style="padding: 8px 15px;" onclick="exitLive()">Sair / Voltar ao Hub</button>
+        </div>
+        <div class="live-layout">
+            <div class="pitch-area">
+                <div class="tv-scoreboard" id="tv-scoreboard">
+                    <div class="tv-teams">
+                        <span id="tv-team-a" style="color:var(--accent)">TMA</span> 
+                        <span id="tv-score-a">0</span> - <span id="tv-score-b">0</span> 
+                        <span id="tv-team-b" style="color:#3b82f6">TMB</span>
+                    </div>
+                    <div class="tv-stats">⏱ <span id="tv-time">0'</span> | Esc: <span id="tv-corners">0-0</span> | Fal: <span id="tv-fouls">0-0</span></div>
+                </div>
+                <canvas id="pitchCanvas" width="800" height="400"></canvas>
+                <div id="coord-overlay" class="coord-overlay"></div>
+            </div>
+            <div class="sidebar">
+                <h3>Narrativa</h3>
+                <div class="feed" id="live-feed"></div>
+            </div>
+        </div>
+    </div>
+        </div>
+
+        <div class="fixed-bets-sidebar">
+            <h3>Ativas (Bilhetes Abertos)</h3>
+            <div id="active-bets-list"></div>
+            <h3 style="margin-top:20px; color:#888;">Histórico (Resolvidas)</h3>
+            <div id="past-bets-list"></div>
+        </div>
+    </div>
+
+    <div id="bet-modal" class="modal">
+        <div class="modal-content">
+            <h3 id="bet-title">Confirmar Aposta</h3>
+            <p>Mercado: <b id="bet-market"></b></p>
+            <p>Opção: <b id="bet-option"></b> (Odd: <span id="bet-odd-val" style="color:var(--accent); font-weight:bold;"></span>)</p>
+            <input type="number" id="bet-amount" placeholder="Valor em Moedas (ex: 100)" min="1">
+            <div class="modal-buttons">
+                <button class="btn-cancel" onclick="closeModal()">Cancelar</button>
+                <button class="btn-confirm" onclick="confirmBet()">Apostar</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let wallet = parseFloat(localStorage.getItem('wallet')) || 1000.00;
+        let loan = parseFloat(localStorage.getItem('loan')) || 0.00;
+        let activeBets = JSON.parse(localStorage.getItem('activeBets')) || [];
+        let pastBets = JSON.parse(localStorage.getItem('pastBets')) || [];
+        let currentRound = []; // Holds the active matches
+        let tournamentStage = "";
+        let playedMatches = 0;
+        let winners = [];
+        let isTournamentMode = false;
+        
+        let ws; let liveMatchData = null;
+
+        function saveState() {
+            localStorage.setItem('wallet', wallet);
+            localStorage.setItem('loan', loan);
+            localStorage.setItem('activeBets', JSON.stringify(activeBets));
+            localStorage.setItem('pastBets', JSON.stringify(pastBets));
+            document.getElementById('wallet-display').innerText = `🪙 ${wallet.toFixed(2)}`;
+            
+            const ld = document.getElementById('loan-display');
+            const btnLoan = document.getElementById('btn-loan');
+            if(loan > 0) {
+                ld.style.display = 'block';
+                ld.innerText = `Dívida: 🪙 ${loan.toFixed(2)}`;
+                btnLoan.innerText = "💸 Quitar Dívida";
+                btnLoan.style.background = "#ef4444";
+                btnLoan.style.color = "white";
+            } else {
+                ld.style.display = 'none';
+                btnLoan.innerText = "🏦 Empréstimo";
+                btnLoan.style.background = "#fbbf24";
+                btnLoan.style.color = "black";
+            }
+            
+            renderSidebarBets();
+        }
+        function updateWallet(amount) { wallet += amount; saveState(); }
+
+        async function initApp() {
+            const res = await fetch('/api/leagues');
+            const leagues = await res.json();
+            const sel = document.getElementById('league-select');
+            sel.innerHTML = '<option value="">-- Selecione a Liga --</option>';
+            leagues.forEach(l => sel.innerHTML += `<option value="${l.id}">${l.name}</option>`);
+            saveState();
+        }
+        initApp();
+
+        async function handleGenerate() {
+            const lid = document.getElementById('league-select').value;
+            if(!lid) return alert("Selecione uma liga!");
+            
+            // 1: Copa do Mundo, 2: Champions, 13: Libertadores => Mata-Mata
+            if(lid === "1" || lid === "2" || lid === "13") {
+                isTournamentMode = true;
+                generateTournament(lid);
+            } else {
+                // Brasileirao, Premier League, La Liga => Rodada Comum
+                isTournamentMode = false;
+                generateRegularRound(lid);
+            }
+        }
+
+        async function generateTournament(lid) {
+            document.getElementById('tournament-view').style.display = 'block';
+            document.getElementById('matches-list').innerHTML = "<h3>Gerando Chaveamento com Gigantes...</h3>";
+            document.getElementById('outrights-panel').style.display = 'block';
+            
+            playedMatches = 0; winners = [];
+            
+            const res = await fetch(`/api/tournament/generate?league_id=${lid}`);
+            const data = await res.json();
+            if(data.error) return alert(data.error);
+            
+            currentRound = data.matches; // FIX: Ensure currentRound is populated!
+            tournamentStage = data.stage;
+            document.getElementById('tourney-stage').innerText = `Fase atual: ${tournamentStage}`;
+            
+            document.getElementById('outrights-grid').innerHTML = "";
+            data.outrights.forEach(o => {
+                document.getElementById('outrights-grid').innerHTML += `
+                    <button class="odd-btn" style="text-align:left; padding:10px;" onclick="openBetModal('OUTRIGHT', 'CHAMP', ${o.odd}, 'Campeão do Torneio', '${o.team.name}')">
+                        <img src="${o.team.logo}" style="width:20px; vertical-align:middle; margin-right:5px;">
+                        ${o.team.name}
+                        <span style="font-size:1.1em; color:var(--accent); float:right;">${o.odd}</span>
+                    </button>`;
+            });
+            renderMatches();
+        }
+
+        async function generateRegularRound(lid) {
+            document.getElementById('tournament-view').style.display = 'block';
+            document.getElementById('matches-list').innerHTML = "<h3>Gerando Rodada...</h3>";
+            document.getElementById('outrights-panel').style.display = 'none'; // Não tem campeão em rodada única
+            
+            playedMatches = 0; winners = [];
+            
+            const res = await fetch(`/api/round/generate?league_id=${lid}`);
+            currentRound = await res.json(); // Array flat de partidas
+            if(currentRound.error) return alert(currentRound.error);
+            
+            tournamentStage = "Rodada Regular";
+            document.getElementById('tourney-stage').innerText = `Campeonato de Pontos Corridos: Rodada Ativa`;
+            
+            renderMatches();
+        }
+
+        function renderMatches() {
+            document.getElementById('bracket-title').innerText = `Partidas - ${tournamentStage}`;
+            const list = document.getElementById('matches-list');
+            list.innerHTML = "";
+            currentRound.forEach(m => {
+                const isPlayed = m.result;
+                const overlay = isPlayed ? `<div class="match-result-overlay" style="display:flex;">Placar Final: ${m.result.scoreA} - ${m.result.scoreB}<br><span style="font-size:0.5em; color:white;">Apostas resolvidas.</span></div>` : '';
+                
+                const localBets = activeBets.filter(b => b.match_id === m.id);
+                let localBetsHtml = '';
+                if(localBets.length > 0 && !isPlayed) {
+                    localBetsHtml = `<div class="local-bets-area"><b>Seus Bilhetes:</b> ` + 
+                        localBets.map(b => `<span class="local-bet-chip">${b.optionName} (🪙 ${b.amount})</span>`).join('') + `</div>`;
+                }
+
+                const html = `
+                <div class="match-card ${isPlayed ? 'played' : ''}" id="card-${m.id}">
+                    ${overlay}
+                    <div class="match-header">
+                        <div class="match-teams"><img src="${m.team_a.logo}"> ${m.team_a.name} vs ${m.team_b.name} <img src="${m.team_b.logo}"></div>
+                        <div class="action-buttons">
+                            <button class="btn-watch" onclick="watchMatch('${m.id}')">▶ Assistir Ao Vivo</button>
+                            <button class="btn-fast" onclick="fastSimulateMatch('${m.id}')">⚡ Rápido</button>
+                        </div>
+                    </div>
+                    <div class="markets-container">
+                        <div class="market-group">
+                            <div class="market-title">Vencedor (1X2)</div>
+                            <div class="odds-row">
+                                <div class="odd-btn" onclick="openBetModal('${m.id}', '1', ${m.odds['1']}, 'Vencedor', '${m.team_a.name}')"><span>Casa</span>${m.odds['1']}</div>
+                                <div class="odd-btn" onclick="openBetModal('${m.id}', 'X', ${m.odds['X']}, 'Vencedor', 'Empate')"><span>Empate</span>${m.odds['X']}</div>
+                                <div class="odd-btn" onclick="openBetModal('${m.id}', '2', ${m.odds['2']}, 'Vencedor', '${m.team_b.name}')"><span>Fora</span>${m.odds['2']}</div>
+                            </div>
+                        </div>
+                        <div class="market-group">
+                            <div class="market-title">Gols 2.5</div>
+                            <div class="odds-row">
+                                <div class="odd-btn" onclick="openBetModal('${m.id}', 'O2.5', ${m.odds['O2.5']}, 'Total Gols', 'Mais 2.5')"><span>+2.5</span>${m.odds['O2.5']}</div>
+                                <div class="odd-btn" onclick="openBetModal('${m.id}', 'U2.5', ${m.odds['U2.5']}, 'Total Gols', 'Menos 2.5')"><span>-2.5</span>${m.odds['U2.5']}</div>
+                            </div>
+                        </div>
+                        <div class="market-group">
+                            <div class="market-title">Ambas Marcam</div>
+                            <div class="odds-row">
+                                <div class="odd-btn" onclick="openBetModal('${m.id}', 'BTTS_Y', ${m.odds['BTTS_Y']}, 'Ambas', 'Sim')"><span>Sim</span>${m.odds['BTTS_Y']}</div>
+                                <div class="odd-btn" onclick="openBetModal('${m.id}', 'BTTS_N', ${m.odds['BTTS_N']}, 'Ambas', 'Não')"><span>Não</span>${m.odds['BTTS_N']}</div>
+                            </div>
+                        </div>
+                    </div>
+                    ${localBetsHtml}
+                </div>`;
+                list.innerHTML += html;
+            });
+        }
+
+        // --- Sistema de Empréstimos ---
+        function manageLoan() {
+            if(loan === 0) {
+                let amount = prompt("Valor do empréstimo desejado (com juros de 10%):", "500");
+                amount = parseFloat(amount);
+                if(isNaN(amount) || amount <= 0) return;
+                loan = amount * 1.10; // 10% de juros
+                wallet += amount;
+                saveState();
+                alert(`🏦 Empréstimo de 🪙 ${amount.toFixed(2)} aprovado!\nSua dívida é de 🪙 ${loan.toFixed(2)}.\n\n20% dos seus lucros serão retidos automaticamente para amortizar a dívida, ou você pode pagá-la manualmente clicando no botão.`);
+            } else {
+                let amount = prompt(`Sua dívida atual é de 🪙 ${loan.toFixed(2)}.\nQuanto deseja pagar agora?`, loan.toFixed(2));
+                amount = parseFloat(amount);
+                if(isNaN(amount) || amount <= 0) return;
+                if(amount > wallet) return alert("Saldo insuficiente na sua carteira!");
+                if(amount > loan) amount = loan;
+                wallet -= amount;
+                loan -= amount;
+                saveState();
+                if(loan === 0) alert("🎉 Dívida totalmente quitada! Parabéns!");
+                else alert(`Pagamento de 🪙 ${amount.toFixed(2)} realizado. Restam 🪙 ${loan.toFixed(2)}.`);
+            }
+        }
+
+        // --- Apostas ---
+        let currentBet = null;
+        function openBetModal(match_id, type, odd, market, opt) {
+            currentBet = { match_id, type, odd, marketName: market, optionName: opt };
+            document.getElementById('bet-market').innerText = market; document.getElementById('bet-option').innerText = opt;
+            document.getElementById('bet-odd-val').innerText = odd; document.getElementById('bet-amount').value = "";
+            document.getElementById('bet-modal').classList.add('active');
+        }
+        function closeModal() { document.getElementById('bet-modal').classList.remove('active'); }
+        function confirmBet() {
+            const amt = parseFloat(document.getElementById('bet-amount').value);
+            if(isNaN(amt) || amt <= 0) return alert("Valor inválido.");
+            if(amt > wallet) return alert("Saldo insuficiente!");
+            updateWallet(-amt);
+            activeBets.push({ ...currentBet, amount: amt, id: Date.now() });
+            saveState(); closeModal(); renderMatches();
+        }
+
+        function renderSidebarBets() {
+            const aList = document.getElementById('active-bets-list');
+            const pList = document.getElementById('past-bets-list');
+            aList.innerHTML = activeBets.length ? '' : '<div style="color:#555;">Nenhuma aposta ativa.</div>';
+            activeBets.forEach(b => {
+                aList.innerHTML += `<div class="bet-list-item"><b>${b.optionName}</b> <br> ${b.marketName} (Odd: ${b.odd})<br>🪙 ${b.amount} -> <span style="color:var(--accent)">🪙 ${(b.amount*b.odd).toFixed(2)}</span></div>`;
+            });
+            pList.innerHTML = pastBets.length ? '' : '<div style="color:#555;">Sem histórico.</div>';
+            pastBets.slice(-10).reverse().forEach(b => {
+                let statusClass = b.won ? 'won' : 'lost';
+                let resText = b.won ? `+🪙 ${(b.amount*b.odd).toFixed(2)}` : `-🪙 ${b.amount}`;
+                pList.innerHTML += `<div class="bet-list-item ${statusClass}"><b>${b.optionName}</b> (${b.marketName})<br>Resultado: <b>${resText}</b></div>`;
+            });
+        }
+
+        // --- Simulacao Rapida ---
+        async function fastSimulateMatch(match_id) {
+            const m = currentRound.find(x => x.id === match_id);
+            if(!m) return alert("Erro: Partida não encontrada!");
+            
+            const res = await fetch('/api/match/simulate_fast', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ team_a_name: m.team_a.name, team_b_name: m.team_b.name, rating_a: m.rating_a, rating_b: m.rating_b })
+            });
+            const state = await res.json();
+            resolveMatch(m, state.score_a, state.score_b);
+        }
+
+        async function simulateRemainingStage() {
+            const unplayed = currentRound.filter(m => !m.result);
+            if(unplayed.length === 0) return alert("Rodada já concluída!");
+            
+            for(let m of unplayed) {
+                const res = await fetch('/api/match/simulate_fast', {
+                    method: 'POST', headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ team_a_name: m.team_a.name, team_b_name: m.team_b.name, rating_a: m.rating_a, rating_b: m.rating_b })
+                });
+                const state = await res.json();
+                resolveMatch(m, state.score_a, state.score_b, true);
+            }
+            alert("✅ Todos os jogos da tela foram simulados!");
+            renderMatches();
+        }
+
+        function resolveMatch(m, sa, sb, silent = false) {
+            m.result = { scoreA: sa, scoreB: sb };
+            
+            let winner = sa > sb ? m.team_a : (sb > sa ? m.team_b : (m.rating_a >= m.rating_b ? m.team_a : m.team_b));
+            winners.push({ team: winner, rating: winner.name === m.team_a.name ? m.rating_a : m.rating_b });
+            playedMatches++;
+
+            let res1x2 = sa > sb ? "1" : (sb > sa ? "2" : "X");
+            let isOver = (sa + sb) > 2.5; let isBtts = (sa > 0 && sb > 0);
+            
+            let matchBets = activeBets.filter(b => b.match_id === m.id);
+            let winnings = 0;
+            
+            matchBets.forEach(b => {
+                let won = false;
+                if(["1","X","2"].includes(b.type)) won = (b.type === res1x2);
+                if(b.type === "O2.5") won = isOver; if(b.type === "U2.5") won = !isOver;
+                if(b.type === "BTTS_Y") won = isBtts; if(b.type === "BTTS_N") won = !isBtts;
+                
+                b.won = won;
+                if(won) winnings += (b.amount * b.odd);
+                pastBets.push(b);
+            });
+            
+            activeBets = activeBets.filter(b => b.match_id !== m.id);
+            
+            let paidLoanStr = "";
+            if(winnings > 0) {
+                if(loan > 0) {
+                    let discount = winnings * 0.20; // Amortização automática de 20%
+                    if(discount > loan) discount = loan;
+                    loan -= discount;
+                    winnings -= discount;
+                    paidLoanStr = `\n📉 (🪙 ${discount.toFixed(2)} retidos para pagar o empréstimo)`;
+                }
+                updateWallet(winnings); 
+            } else {
+                saveState();
+            }
+            
+            if(!silent) {
+                if(winnings > 0 || paidLoanStr !== "") alert(`Placar: ${m.team_a.name} ${sa}x${sb} ${m.team_b.name}\n💰 GREEN! Você lucrou 🪙 ${winnings.toFixed(2)}!${paidLoanStr}`);
+                else if (matchBets.length > 0) alert(`Placar: ${m.team_a.name} ${sa}x${sb} ${m.team_b.name}\n💸 RED. Apostas perdidas.`);
+            }
+            
+            renderMatches();
+            checkStageComplete();
+        }
+
+        async function checkStageComplete() {
+            if(playedMatches === currentRound.length) {
+                if(!isTournamentMode) {
+                    alert("✅ Rodada concluída!");
+                    return;
+                }
+                
+                if(winners.length === 1) {
+                    alert(`🏆 TORNEIO ENCERRADO! O Campeão é: ${winners[0].team.name}! Resolvendo apostas Outrights...`);
+                    let outBets = activeBets.filter(b => b.type === "CHAMP");
+                    let winSum = 0;
+                    outBets.forEach(b => {
+                        b.won = (b.optionName === winners[0].team.name);
+                        if(b.won) winSum += (b.amount * b.odd);
+                        pastBets.push(b);
+                    });
+                    activeBets = activeBets.filter(b => b.type !== "CHAMP");
+                    
+                    let paidLoanStr = "";
+                    if(winSum > 0) { 
+                        if(loan > 0) {
+                            let discount = winSum * 0.20;
+                            if(discount > loan) discount = loan;
+                            loan -= discount;
+                            winSum -= discount;
+                            paidLoanStr = `\n📉 (🪙 ${discount.toFixed(2)} debitados para amortizar a dívida)`;
+                        }
+                        updateWallet(winSum); 
+                        alert(`💰 JACKPOT! Você ganhou apostas de Campeão no valor de 🪙 ${winSum.toFixed(2)}!${paidLoanStr}`); 
+                    } else {
+                        saveState();
+                    }
+                    return;
+                }
+                setTimeout(() => advanceTournament(), 1000);
+            }
+        }
+
+        async function advanceTournament() {
+            let nextStage = tournamentStage === "Quartas de Final" ? "Semi-Final" : "Final";
+            const res = await fetch('/api/tournament/next_round', {
+                method: 'POST', headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ winners: winners, next_stage: nextStage })
+            });
+            const data = await res.json();
+            currentRound = data.matches; tournamentStage = data.stage;
+            playedMatches = 0; winners = [];
+            document.getElementById('tourney-stage').innerText = `Fase atual: ${tournamentStage}`;
+            
+            if(tournamentStage !== "Quartas de Final") {
+                document.getElementById('outrights-panel').style.display = 'none';
+            }
+            
+            renderMatches();
+        }
+
+        // --- Live Match Engine ---
+        function switchView(viewId) { document.querySelectorAll('.view').forEach(v => v.classList.remove('active')); document.getElementById(viewId).classList.add('active'); }
+        function exitLive() { if(ws) ws.close(); stopVisuals(); switchView('view-hub'); }
+        function watchMatch(match_id) {
+            liveMatchData = currentRound.find(m => m.id === match_id);
+            if(!liveMatchData) return alert("Erro interno na partida.");
+            document.getElementById('live-feed').innerHTML = "";
+            document.getElementById('tv-team-a').innerText = liveMatchData.team_a.name.substring(0,3).toUpperCase();
+            document.getElementById('tv-team-b').innerText = liveMatchData.team_b.name.substring(0,3).toUpperCase();
+            document.getElementById('tv-score-a').innerText = 0; document.getElementById('tv-score-b').innerText = 0;
+            switchView('view-live'); startVisuals();
+            
+            ws = new WebSocket("ws://" + window.location.host + "/ws/match");
+            ws.onopen = () => ws.send(JSON.stringify({ type: "START", team_a_name: liveMatchData.team_a.name, team_b_name: liveMatchData.team_b.name, rating_a: liveMatchData.rating_a, rating_b: liveMatchData.rating_b }));
+            ws.onmessage = (event) => {
+                const data = JSON.parse(event.data);
+                if(data.type === "STATE_UPDATE" && !isHighlightMode) {
+                    document.getElementById('tv-score-a').innerText = data.state.score_a; document.getElementById('tv-score-b').innerText = data.state.score_b;
+                    document.getElementById('tv-time').innerText = data.state.minute + "'";
+                } else if(data.type === "EVENT") {
+                    if(data.event.type === 'GOAL') { isHighlightMode = true; triggerGoalAnimation(data.event); }
+                    else { addEventToFeed(data.event); }
+                } else if(data.type === "MATCH_END") {
+                    setTimeout(() => { stopVisuals(); ws.close(); resolveMatch(liveMatchData, parseInt(document.getElementById('tv-score-a').innerText), parseInt(document.getElementById('tv-score-b').innerText)); exitLive(); }, 2000);
+                }
+            };
+        }
+        function addEventToFeed(evt) { const feed = document.getElementById('live-feed'); feed.innerHTML += `<div class="feed-item"><span class="minute">${evt.minute}'</span> ${evt.message}</div>`; feed.scrollTop = feed.scrollHeight; }
+
+        const canvas = document.getElementById('pitchCanvas'); const ctx = canvas.getContext('2d');
+        let animationId; let gameActive = false; let isHighlightMode = false;
+        const ball = { x: 400, y: 200, vx: 0, vy: 0, radius: 5, color: '#fff', history: [] }; const players = [];
+        function initPlayers() {
+            players.length = 0;
+            for(let i=0; i<11; i++) players.push({ x: 100+(i%3)*80, y: 50+(i%4)*80, vx:0, vy:0, r:6, color:'#ef4444', bx:100+(i%3)*80, by:50+(i%4)*80 });
+            for(let i=0; i<11; i++) players.push({ x: 700-(i%3)*80, y: 50+(i%4)*80, vx:0, vy:0, r:6, color:'#3b82f6', bx:700-(i%3)*80, by:50+(i%4)*80 });
+        }
+        function drawPitch() { ctx.fillStyle = '#2e8b57'; ctx.fillRect(0, 0, canvas.width, canvas.height); ctx.strokeStyle = 'rgba(255,255,255,0.6)'; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(canvas.width/2, 0); ctx.lineTo(canvas.width/2, canvas.height); ctx.stroke(); ctx.beginPath(); ctx.arc(canvas.width/2, canvas.height/2, 60, 0, Math.PI*2); ctx.stroke(); ctx.strokeRect(0, 80, 120, 240); ctx.strokeRect(canvas.width-120, 80, 120, 240); }
+        function updateSimulation() {
+            if(!gameActive) return; ball.x+=ball.vx; ball.y+=ball.vy; ball.vx*=0.95; ball.vy*=0.95;
+            if(Math.abs(ball.vx)>0.5||Math.abs(ball.vy)>0.5){ball.history.push({x:ball.x,y:ball.y}); if(ball.history.length>30)ball.history.shift();} else if(!isHighlightMode && ball.history.length>0) ball.history.shift();
+            if(!isHighlightMode && Math.random()<0.03){ball.vx+=(Math.random()-0.5)*35; ball.vy+=(Math.random()-0.5)*35;}
+            if(ball.x<10){ball.x=10;ball.vx*=-1;} if(ball.x>canvas.width-10){ball.x=canvas.width-10;ball.vx*=-1;} if(ball.y<10){ball.y=10;ball.vy*=-1;} if(ball.y>canvas.height-10){ball.y=canvas.height-10;ball.vy*=-1;}
+            players.forEach(p=>{
+                if(!isHighlightMode && Math.hypot(ball.x-p.x, ball.y-p.y)<150){ p.vx+=(ball.x-p.x)*0.03; p.vy+=(ball.y-p.y)*0.03; } else { p.vx+=(p.bx-p.x)*0.05; p.vy+=(p.by-p.y)*0.05; }
+                p.vx*=0.8; p.vy*=0.8; p.x+=p.vx; p.y+=p.vy;
+            });
+        }
+        function drawSimulation() {
+            drawPitch();
+            if(ball.history.length>2){ ctx.beginPath(); ctx.setLineDash([6,4]); ctx.strokeStyle=isHighlightMode?'#fbbf24':'rgba(255,255,255,0.5)'; ctx.lineWidth=2; ctx.moveTo(ball.history[0].x,ball.history[0].y); for(let i=1;i<ball.history.length;i++)ctx.lineTo(ball.history[i].x,ball.history[i].y); ctx.stroke(); ctx.setLineDash([]); ctx.beginPath(); ctx.arc(ball.x,ball.y,10,0,Math.PI*2); ctx.strokeStyle='rgba(255,255,255,0.3)'; ctx.stroke(); }
+            players.forEach(p=>{ ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2); ctx.fillStyle=p.color; ctx.fill(); });
+            ctx.beginPath(); ctx.arc(ball.x,ball.y,ball.radius,0,Math.PI*2); ctx.fillStyle=ball.color; ctx.fill();
+        }
+        function loop() { updateSimulation(); drawSimulation(); animationId = requestAnimationFrame(loop); }
+        function startVisuals() { gameActive=true; initPlayers(); ball.history=[]; ball.x=canvas.width/2; ball.y=canvas.height/2; ball.vx=0; ball.vy=0; if(!animationId) loop(); }
+        function stopVisuals() { gameActive=false; }
+        function triggerGoalAnimation(evt) {
+            let isA = evt.team === liveMatchData.team_a.name; ball.history=[]; ball.x=isA?canvas.width-250:250; ball.y=canvas.height/2+(Math.random()-0.5)*100; ball.vx=isA?45:-45; ball.vy=(Math.random()-0.5)*10;
+            const overlay = document.getElementById('coord-overlay'); overlay.innerHTML=`LANCE DO GOL!<br>Trajetória traçada...`; overlay.classList.add('show');
+            setTimeout(() => {
+                addEventToFeed(evt);
+                const sa = document.getElementById('tv-score-a'); const sb = document.getElementById('tv-score-b');
+                if(isA) sa.innerText=parseInt(sa.innerText)+1; else sb.innerText=parseInt(sb.innerText)+1;
+                setTimeout(() => { overlay.classList.remove('show'); isHighlightMode=false; if(ws) { ball.x=canvas.width/2; ball.y=canvas.height/2; ball.vx=0; ball.vy=0; initPlayers(); } }, 2000); 
+            }, 800); 
+        }
+    </script>
+</body>
+</html>
