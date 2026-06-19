@@ -1,0 +1,5 @@
+[tool.vercel]
+entrypoint = "backend/main.py"
+
+[tool.vercel.env]
+API_FOOTBALL_KEY = ""

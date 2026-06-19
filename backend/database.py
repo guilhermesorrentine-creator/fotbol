@@ -2,8 +2,9 @@ from sqlalchemy import create_engine, Column, Integer, String, Float, Text
 from sqlalchemy.orm import sessionmaker, declarative_base
 import os
 
-BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-DB_PATH = os.path.join(BASE_DIR, "trader_de_elite.db")
+# No Vercel o filesystem é read-only exceto /tmp
+_base = "/tmp" if os.path.exists("/tmp") and not os.access(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), os.W_OK) else os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+DB_PATH = os.path.join(_base, "trader_de_elite.db")
 
 engine = create_engine(f"sqlite:///{DB_PATH}", connect_args={"check_same_thread": False})
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
