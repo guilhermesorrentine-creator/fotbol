@@ -4,7 +4,21 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Trader de Elite - Simulador</title>
-    <link rel="stylesheet" href="/static/css/style.css">
+    <link rel="stylesheet" href="/static/css/style.css?v=3">
+    <style>
+      /* Critical inline CSS — garante layout básico mesmo sem o arquivo externo */
+      *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+      :root{--bg:#0d0d0f;--surface:#16161a;--surface-2:#1e1e24;--surface-3:#26262e;--border:#2a2a35;--border-bright:#3d3d50;--text:#e8e8f0;--text-muted:#7b7b96;--text-dim:#4a4a60;--accent:#00d97e;--accent-dim:rgba(0,217,126,.12);--accent-hover:#00b868;--blue:#3b82f6;--yellow:#f59e0b;--yellow-dim:rgba(245,158,11,.12);--red:#ef4444;--red-dim:rgba(239,68,68,.12);--purple:#a855f7;--radius:10px;--radius-sm:6px}
+      body{font-family:'Segoe UI',system-ui,sans-serif;background:var(--bg);color:var(--text);height:100vh;display:flex;flex-direction:column;overflow:hidden}
+      .modal{display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);align-items:center;justify-content:center;z-index:1000}
+      .modal.active{display:flex}
+      .view{display:none;padding:20px;flex:1;overflow-y:auto}
+      .view.active{display:flex;flex-direction:column}
+      .main-layout{display:flex;flex:1;overflow:hidden}
+      .views-area{flex:3;display:flex;flex-direction:column;overflow-y:auto}
+      .fixed-bets-sidebar{width:260px;flex-shrink:0;background:var(--surface);border-left:1px solid var(--border);overflow-y:auto;padding:16px}
+      .topbar{background:var(--surface);padding:10px 24px;display:flex;justify-content:space-between;align-items:center;border-bottom:1px solid var(--border);flex-shrink:0}
+    </style>
 </head>
 <body>
 
