@@ -2,7 +2,7 @@ import requests
 import json
 import os
 
-API_KEY = "22125f66c3f6b61b59deb3cdf8ace8a2"
+API_KEY = os.environ.get("API_FOOTBALL_KEY", "22125f66c3f6b61b59deb3cdf8ace8a2")
 BASE_URL = "https://v3.football.api-sports.io"
 
 HEADERS = {

@@ -24,6 +24,7 @@ class Match:
         self.score_b = 0
         self.corners_a = 0
         self.corners_b = 0
+        self.scorers = []
         self.is_finished = False
 
     def get_active_players(self, roster):
@@ -56,10 +57,12 @@ class Match:
         elif rand < foul_chance_a + foul_chance_b + goal_chance_a:
             self.score_a += 1
             scorer = self.choose_scorer(active_a)
+            if scorer: self.scorers.append(scorer.name)
             event = {"type": "GOAL", "team": self.team_a, "player": scorer.name if scorer else "Desconhecido", "minute": self.minute, "message": f"GOL do {self.team_a}! {scorer.name if scorer else ''} mandou pra rede!"}
         elif rand < foul_chance_a + foul_chance_b + goal_chance_a + goal_chance_b:
             self.score_b += 1
             scorer = self.choose_scorer(active_b)
+            if scorer: self.scorers.append(scorer.name)
             event = {"type": "GOAL", "team": self.team_b, "player": scorer.name if scorer else "Desconhecido", "minute": self.minute, "message": f"GOL do {self.team_b}! Golaço de {scorer.name if scorer else ''}!"}
         elif rand < foul_chance_a + foul_chance_b + goal_chance_a + goal_chance_b + corner_chance_a:
             self.corners_a += 1
@@ -111,8 +114,13 @@ class Match:
             "score_a": self.score_a,
             "score_b": self.score_b,
             "corners_a": self.corners_a,
+            
             "corners_b": self.corners_b,
             "is_finished": self.is_finished,
+            "scorers": self.scorers,
+            "yellow_cards_a": len([p for p in self.roster_a if p.has_yellow_card and not p.has_red_card]),
+            "yellow_cards_b": len([p for p in self.roster_b if p.has_yellow_card and not p.has_red_card]),
             "red_cards_a": len([p for p in self.roster_a if p.has_red_card]),
             "red_cards_b": len([p for p in self.roster_b if p.has_red_card])
         }
+
